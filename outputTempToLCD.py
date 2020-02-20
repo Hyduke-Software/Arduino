@@ -1,5 +1,5 @@
 #Python script to Output Dell server temperature to an LCD panel
-#Running on Raspbery Pi, requires 
+#Running on Raspbery Pi, requires DellFanMonitor.sh
 import I2C_LCD_driver
 from time import *
 import sys
