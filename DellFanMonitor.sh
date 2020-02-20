@@ -1,5 +1,6 @@
 #Modified version of this:
 #https://github.com/NoLooseEnds/Scripts/blob/master/R710-IPMI-TEMP/R710-IPMITemp.sh
+#This keeps the cooling fans quiet on a Dell R710 server
 #!/usr/bin/env bash
 
 # ----------------------------------------------------------------------------------
@@ -13,7 +14,7 @@
 
 # IPMI DEFAULT R710 SETTINGS
 # Modify to suit your needs.
-IPMIHOST=192.168.1.125
+IPMIHOST=192.1.1.1
 IPMIUSER=root
 IPMIPW=rootpassword
 
