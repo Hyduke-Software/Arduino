@@ -1,0 +1,166 @@
+//Last update 06/06/2016
+//For displaying game stats on a 16x2 LCD screen with an Arduino. This one is configured for a Warhammer 40k roleplay
+// include the library code:
+#include <LiquidCrystal.h>
+
+// initialize the library with the numbers of the interface pins
+LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
+
+
+String gunNames[]={"PlasmaPST ", "InfernoPST ", "BoltRev ", "Digi-A "};
+String d10[]={"1d10+6", "2d10+8", "1d10+5", "2d10+4"};
+int  maxAmmoA[]={10, 3, 5, 1};
+int currentAmmoa[]={10, 3, 5, 1};
+String reloadA[]={"3Full", "Full", "2Full", "Full"};
+String penA[]={"PEN06", "PEN13", "PEN02", "PEN12"};
+String rangeA[]={"R30", "R10", "R30", "R3"};
+String specialA1[]={"Max:+1d10 +2PEN", "No special rules", "Tearing reliable","Cannot reload"};
+String specialA2[]={"+3ammo, Overheat", "No special rules", "NEVER JAM, RDS", "in combat"};
+int iGun=0;
+
+
+
+void setup() {
+  // set up the LCD's number of columns and rows:
+  lcd.begin(16, 2);
+  // Print a message to the LCD.
+  lcd.setCursor(0,0);
+  lcd.print("Starting up");
+  lcd.setCursor(0,1);
+  lcd.print("69%");
+}
+
+
+void loop() {
+   if (iGun >= 4){iGun = 0;}
+   homepage();
+  int x;
+  x = analogRead (0);
+  lcd.setCursor(10,1);
+  if (x < 60) { //right button
+   showSpecialRules();
+  }
+  else if (x < 200) { //UP button
+    changegun();
+  }
+  else if (x < 400){ //down button
+    changegundown();
+  }
+  else if (x < 600){ //left
+    reload();
+  }
+  else if (x < 800){ //select button
+    shoot();
+  }
+  delay(350);
+}
+
+void noAmmo(){
+  
+  //Serial.println("nill ammoan");
+    lcd.clear();
+    lcd.setCursor(0,0); //Start at character 0 on line 0
+    lcd.print ("NO AMMO!!!");
+    lcd.setCursor(0,1);
+    lcd.print ("Reload the gun!");
+    delay(2000);   
+    return;   
+}
+void showSpecialRules(){
+         lcd.clear();
+          lcd.setCursor(0,0); //Start at character 0 on line 0
+          lcd.print (specialA1[iGun]);
+          lcd.setCursor(0,1);
+          lcd.print (specialA2[iGun]);
+          if (iGun >= 4){iGun = 0;}
+        delay(2000); 
+ homepage();
+  
+}
+void homepage(){
+   //delay(100); 
+  lcd.clear();
+  lcd.setCursor(0,0); //Start at character 4 on line 0
+  lcd.print(gunNames[iGun] + currentAmmoa[iGun] + "/"+maxAmmoA[iGun]);
+  lcd.setCursor(0,1);
+  lcd.print (d10[iGun] + " " + penA[iGun] + " " + rangeA[iGun]);
+  //choose based on igunnumber
+  return;
+}
+void changegun(){
+  int showGunSploit=0;
+  if (iGun >= 4){iGun = 0;}
+         
+          lcd.clear();
+          lcd.setCursor(0,0); //Start at character 0 on line 0
+          showGunSploit = showGunSploit + 1 + iGun;
+          lcd.print ("Draw!"); 
+          showGunSploit=0;
+          iGun++;
+          if (iGun >= 4){iGun = 0;}
+        delay(1000); 
+          homepage();
+if (iGun >= 4){iGun = 0;}
+//delay(5000);
+//homepage();
+return; 
+}
+void changegundown(){
+  int showGunSploit=0;
+  if (iGun <= 0){iGun = 4;}
+         
+          lcd.clear();
+          lcd.setCursor(0,0); //Start at character 0 on line 0
+          //showGunSploit = showGunSploit + -1 + iGun;
+          showGunSploit = iGun -1;
+          lcd.print ("Draw!"); 
+          showGunSploit=0;
+          iGun--;
+         if (iGun <= 0){iGun = 4;}
+        delay(1000); 
+          homepage();
+if (iGun <= 0){iGun = 4;}
+//delay(5000);
+//homepage();
+return; 
+}
+
+
+void shoot(){
+           currentAmmoa[iGun]--;
+               if (currentAmmoa[iGun] < 0)
+               {
+                 noAmmo();
+                 currentAmmoa[iGun] =0;
+               }
+               else{
+                 //nowt
+               }
+        //block
+           lcd.clear();
+            lcd.setCursor(0,0); //Start at character 0 on line 0
+            lcd.print(gunNames[iGun] + currentAmmoa[iGun] + "/"+maxAmmoA[iGun]);
+           // delay(1000);
+            lcd.setCursor(0,1);
+            lcd.print (d10[iGun] + " " + penA[iGun] + " " + rangeA[iGun]);
+
+ return;                       
+}
+
+
+void reload() {
+    currentAmmoa[iGun] = maxAmmoA[iGun];
+    
+    lcd.clear();
+    lcd.setCursor(0,0); //Start at character 0 on line 0
+    lcd.print("RELOADING!"); 
+    lcd.setCursor(0,1);
+    lcd.print(reloadA[iGun]);
+    delay(500);
+    lcd.clear();
+   // lcd.print(plasma+currentammo+"/"+maxammo); 
+    lcd.print(gunNames[iGun] + currentAmmoa[iGun] + "/"+maxAmmoA[iGun]);
+    lcd.setCursor(0,1);
+    lcd.print (d10[iGun] + " " + penA[iGun] + " " + rangeA[iGun]);
+  return;
+}
