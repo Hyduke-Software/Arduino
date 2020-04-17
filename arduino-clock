@@ -1,0 +1,69 @@
+ //17/04/2020
+ //Uses RTC and two TM1637 7 seg displays
+#include <TM1637.h>
+#include <Wire.h>
+#include <WireRtcLib.h>
+
+WireRtcLib rtc;
+TM1637 tm1637(2,3);
+TM1637 tempTM1637(10, 11);
+
+void setup()
+{
+  Wire.begin();
+  rtc.begin();
+  Serial.begin(9600);
+
+    tm1637.init(); //time display
+    tm1637.setBrightness(5);
+    tempTM1637.init(); //time display
+    tempTM1637.setBrightness(5);
+
+  if (rtc.isDS1307())
+    Serial.println("Detected DS1307");
+  else if (rtc.isDS3231())
+    Serial.println("Detected DS3231");
+  else
+    Serial.println("Autodetect failed");
+   
+}
+
+void loop()
+{
+ 
+  tm1637.switchColon();
+  delay(500);
+
+  displayTime();
+  displayTemp();
+}
+
+void displayTime(){
+
+   int timeVal =0;
+String timeString ="";
+  WireRtcLib::tm* t = rtc.getTime();
+  Serial.print("Time: ");
+  Serial.print(t->hour);
+  Serial.print(":");
+  Serial.print(t->min);
+  Serial.print(":");
+  Serial.println(t->sec);
+    
+timeString = timeString + t->hour;
+timeString = timeString + t->min;
+
+timeVal =timeString.toInt();
+  
+tm1637.dispNumber(timeVal);
+}
+
+
+
+void displayTemp(){
+ int8_t i;
+         uint8_t f;
+         rtc.getTemp(&i, &f);
+ tempTM1637.dispNumber(i);
+
+}
