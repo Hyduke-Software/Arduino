@@ -1,0 +1,454 @@
+//old legacy code, belived to work
+
+#include <Scheduler.h>
+#include <Keyboard.h>
+#include <Mouse.h>
+
+bool active = false;
+bool stageSaftey = true;
+bool abortSaftey = true;
+
+//BUTTONS PINS
+const int wBTN = 5;
+const int aBTN = 2;
+const int sBTN = 4;
+const int dBTN = 6;
+const int qBTN = 3;
+const int eBTN = 7;
+const int pickUp1 = 35;// Mode: D||E
+const int pickUp2 = 33;// Mode: B||C||D
+const int pickUp3 = 37;// MODE: A||B
+const int capsBTN = 23;
+const int fBTN = 25;
+const int retroBTN = 27;
+const int resetBTN = 29;
+const int autoBRN = 31; //This button follows fault unless on cycle
+const int joyFwd = 39;
+const int joyBck = 43;
+const int joyLeft = 45;
+const int joyRight = 41;
+const int joyA = 42;
+const int joyB = 40;
+const int joyC = 38;
+
+//Multi Positon Switches
+const int S1A = 47;//map and stage
+const int S1B = 49;//Dock and stage
+const int S2A = 16;// drogue
+const int S2B = 17;//main
+const int S3A = 57;// ext and n
+const int S3B = 58; //Iva and n
+
+//analog digital buttons
+const int actBTN = 64;
+const int selectBTN = 65;
+const int autoModeBTN = 63;
+const int abortKeyBTN = 51;
+const int abortBTN = 53;
+const int stageSafteyBTN = 52;
+const int spaceBTN = 50;
+const int gBTN = 8; //gear
+const int bBTN = 9; //brake
+const int uBTN = 10; //lights
+const int rcsBTN = 11; //r
+const int sasBTN = 12; //t
+const int invsasBTN = 51;
+const int vBTN = 40;
+const int cBTN = 40;
+
+//PAD
+const int padB = 23;//A is pulldown to GND     B connects to C with B as extra case
+const int padC = 22;//ROW1
+const int padD = 24;//ROW2
+const int padE = 26;//ROW3
+const int padF = 28;//COL1
+const int padG = 30;//COL2
+const int padH = 32;//COL3  I is skipped
+const int padJ = 34;//COL4
+const int padK = 36;//COL5
+const int padL = 38;// L is reset M to GND
+
+//ANALOG Pins
+const int throttlePIN = 0;
+const int autoPIN = 1;
+const int modPIN = 2;
+
+//Debounce States
+int spaceState;
+int spaceLast = HIGH;
+int rcsState;
+int rcsLast = HIGH;
+int sasState;
+int sasLast = HIGH;
+int gState;
+int gLast = HIGH;
+int uState;
+int uLast = HIGH;
+int capsState;
+int capsLast = HIGH;
+
+//analog debounce
+int locLast = 461;
+long locLastDebounceTime = 0;
+
+//Debounce timers
+long spaceLastDebounceTime = 0;
+long rcsLastDebounceTime = 0;
+long sasLastDebounceTime = 0;
+long gLastDebounceTime = 0;
+long uLastDebounceTime = 0;
+long capsLastDebounceTime = 0;
+long S1DebounceTime = 0;
+long S3DebounceTime = 0;
+long lastSanityDelay = 0;  // the last time the output pin was toggled
+
+//Constants
+const long sanityDelay = 1;
+const long debounceDelay = 50;    // the debounce time; increase if the output flickers
+const long SdebounceDelay = 10;    // the debounce time; increase if the output flickers
+
+//pad States
+bool autoState = 0;
+bool backState = 0;
+bool chanState = 0;
+bool doState = 0;
+bool examState = 0;
+bool fwdState = 0;
+bool n1State = 0;
+bool n2State = 0;
+bool n3State = 0;
+bool n4State = 0;
+bool n5State = 0;
+bool n6State = 0;
+bool n7State = 0;
+bool n8State = 0;
+bool n9State = 0;
+bool n0State = 0;
+
+//states for mode
+bool wState = 0;
+bool aState = 0;
+bool sState = 0;
+bool dState = 0;
+bool qState = 0;
+bool eState = 0;
+
+//LEDs
+const int debugLED = 12;
+const int rcsLED = 44;
+const int sasLED = 46;
+//const int abortArmedLED = A8;
+const int masterCautionLED = 48;
+const int stageSafteyLED = 40;
+const int abortSafteyLED = 15;
+const int stageLEDred = 20;
+const int stageLEDgreen = 21;
+const int stageLEDblue = 19;
+const int gearLED = A5;
+const int breakLED = A6;
+const int lightLED = A7;
+const int gForceLED = 15;
+const int lowFuelLED = 15;
+const int tempLED = 15;
+const int hardDockLED = 15;
+
+//LED States
+int ledState = LOW;
+int rcsLEDState = HIGH;
+int sasLEDState = HIGH;
+int gearLEDState = HIGH;
+int lightLEDState = HIGH;
+int breakLEDState = LOW;
+int abortArmedLEDState = LOW;
+int stageSafteyLEDState = LOW;
+int stageLEDredState = LOW;
+int stageLEDgreenState = LOW;
+int stageLEDblueState = LOW;
+int debugLEDState = LOW;
+
+//MODE
+int flightMode = 1;
+int mapMode = 0;
+int camMode = 0;
+
+int lastMapMode = 2;
+int lastCamMode = 2;
+
+//char to print
+char wChar = 'w';
+char aChar = 'a';
+char sChar = 's';
+char dChar = 'd';
+char qChar = 'q';
+char eChar = 'e';
+char jFwdChar = 'w';
+char jBckChar = 's';
+char jLeftChar = 'a';
+char jRightChar = 'd';
+char joyAChar = 'q';
+char joyBChar = 's';
+char joyCChar = 'e';
+
+void setup() {
+  //Input BTNS
+  pinMode(spaceBTN, INPUT_PULLUP);
+  pinMode(rcsBTN, INPUT_PULLUP);
+  pinMode(sasBTN, INPUT_PULLUP);
+  pinMode(stageSafteyBTN, INPUT_PULLUP);
+  pinMode(wBTN, INPUT_PULLUP);
+  pinMode(aBTN, INPUT_PULLUP);
+  pinMode(sBTN, INPUT_PULLUP);
+  pinMode(dBTN, INPUT_PULLUP);
+  pinMode(qBTN, INPUT_PULLUP);
+  pinMode(eBTN, INPUT_PULLUP);
+  pinMode(eBTN, INPUT_PULLUP);
+  pinMode(fBTN, INPUT_PULLUP);
+  pinMode(retroBTN, INPUT_PULLUP);
+  pinMode(abortKeyBTN, INPUT_PULLUP);
+  pinMode(abortBTN, INPUT_PULLUP);
+  pinMode(bBTN, INPUT_PULLUP);
+  pinMode(uBTN, INPUT_PULLUP);
+  pinMode(actBTN, INPUT_PULLUP);
+  pinMode(resetBTN, INPUT_PULLUP);
+  pinMode(joyFwd , INPUT_PULLUP);
+  pinMode(joyBck , INPUT_PULLUP);
+  pinMode(joyLeft , INPUT_PULLUP);
+  pinMode(joyRight , INPUT_PULLUP);
+  pinMode(joyA , INPUT_PULLUP);
+  pinMode(joyB , INPUT_PULLUP);
+  pinMode(joyC , INPUT_PULLUP);
+  pinMode(S1A, INPUT_PULLUP);
+  pinMode(S1B, INPUT_PULLUP);
+  pinMode(S2A, INPUT_PULLUP);
+  pinMode(S2B, INPUT_PULLUP);
+  pinMode(S3A, INPUT_PULLUP);
+  pinMode(S3B, INPUT_PULLUP);
+
+  //Interrupts
+  attachInterrupt(wBTN, w, LOW);
+  attachInterrupt(aBTN, a, LOW);
+  attachInterrupt(sBTN, s, LOW);
+  attachInterrupt(dBTN, d, LOW);
+  attachInterrupt(qBTN, q, LOW);
+  attachInterrupt(eBTN, e, LOW);
+  attachInterrupt(bBTN, b, CHANGE);
+  attachInterrupt(fBTN, f, LOW);
+  attachInterrupt(retroBTN, retro, LOW);
+  attachInterrupt(resetBTN, rst, LOW);
+  attachInterrupt(bBTN, b, LOW);
+  attachInterrupt(joyFwd, joyFunForward, LOW);
+  attachInterrupt(joyBck, joyFunBack, LOW);
+  attachInterrupt(joyLeft, joyFunLeft, LOW);
+  attachInterrupt(joyRight, joyFunRight, LOW);
+  attachInterrupt(joyA , joyFunA, LOW);
+  attachInterrupt(joyB , joyFunB, LOW);
+  attachInterrupt(joyC, joyFunC, LOW);
+  attachInterrupt(abortKeyBTN, abortKey, CHANGE);
+  attachInterrupt(abortBTN, abortButton, CHANGE);
+  attachInterrupt(stageSafteyBTN, stage, CHANGE);
+  attachInterrupt(actBTN, act, LOW);
+  attachInterrupt(S2A, drogue, LOW);
+  attachInterrupt(S2B, cut, LOW);
+
+  //PAD Setup
+  pinMode(padF, INPUT_PULLUP);
+  pinMode(padG, INPUT_PULLUP);
+  pinMode(padH, INPUT_PULLUP);
+  pinMode(padJ, INPUT_PULLUP);
+  pinMode(padK, INPUT_PULLUP);
+  pinMode(padB, INPUT);
+  pinMode(padC, OUTPUT);
+  pinMode(padD, OUTPUT);
+  pinMode(padE, OUTPUT);
+
+  //OUTPUT Setup
+  pinMode(rcsLED, OUTPUT);
+  pinMode(sasLED, OUTPUT);
+  pinMode(stageLEDred, OUTPUT);
+  pinMode(stageLEDgreen, OUTPUT);
+  pinMode(stageLEDblue, OUTPUT);
+  pinMode(gearLED, OUTPUT);
+  pinMode(breakLED, OUTPUT);
+  pinMode(lightLED, OUTPUT);
+  pinMode(debugLED, OUTPUT);
+//  pinMode(abortArmedLED, OUTPUT);
+
+  //Begin
+  Scheduler.startLoop(loop2);
+  Scheduler.startLoop(loop3);
+  Scheduler.startLoop(loop4);
+  Keyboard.begin();
+  Mouse.begin();
+}
+
+void loop() {
+  //main loop handles LED States
+  digitalWrite(13, n4State);
+  digitalWrite(rcsLED, rcsLEDState);
+  digitalWrite(sasLED, sasLEDState);
+  //digitalWrite(abortArmedLED, abortArmedLEDState);
+  digitalWrite(breakLED, breakLEDState);
+  digitalWrite(gearLED, gearLEDState);
+  digitalWrite(lightLED, lightLEDState);
+  digitalWrite(stageLEDred, stageLEDredState);
+  digitalWrite(stageLEDgreen, stageLEDgreenState);
+  digitalWrite(stageLEDblue, stageLEDblueState);
+  digitalWrite(stageSafteyLED, stageSafteyLEDState);
+
+  //3POS
+  if (digitalRead(S1A) == HIGH) {
+    mapMode = 3;
+  } else if (digitalRead(S1B) == HIGH)
+  {
+    mapMode = 1;
+  } else {
+    mapMode = 2;
+  }
+
+  switch (mapMode) {
+    case 1:
+      if (lastMapMode != mapMode) {
+        Keyboard.press('m');
+      }
+      lastMapMode = 1;
+      break;
+    case 2:
+      if (lastMapMode != mapMode) {
+        Keyboard.press(0xD2);
+      }
+      lastMapMode = 2;
+      break;
+    case 3:
+      if (lastMapMode != mapMode) {
+        Keyboard.press(0xD4);
+      }
+      lastMapMode = 3;
+      break;
+  }
+  Keyboard.release(0xD4);
+  Keyboard.release(0xD2);
+  Keyboard.release('m');
+
+  if (digitalRead(S3A) == HIGH) {
+    camMode = 3;
+  } else if (digitalRead(S3B) == HIGH)
+  {
+    camMode = 1;
+  } else {
+    camMode = 2;
+  }
+
+  switch (camMode) {
+    case 1:
+      if (lastCamMode != camMode) {
+        Keyboard.press('v');
+      }
+      lastCamMode = 1;
+      break;
+    case 2:
+      if (lastCamMode != camMode) {
+        //n
+      }
+      lastCamMode = 2;
+      break;
+    case 3:
+      if (lastCamMode != camMode) {
+        Keyboard.press('c');
+      }
+      lastCamMode = 3;
+      break;
+  }
+  Keyboard.release('c');
+  Keyboard.release('v');
+  
+  //Check flight Mode
+  if (digitalRead(pickUp1) == LOW) {
+    if (digitalRead(pickUp2) == LOW) {
+      flightMode = 4;
+    } else {
+      flightMode = 5;
+    }
+  } else {
+    if (digitalRead(pickUp3) == LOW) {
+      if (digitalRead(pickUp2) == LOW) {
+        flightMode = 2;
+      } else {
+        flightMode = 1;
+      }
+    } else {
+      flightMode = 3;
+    }
+  }
+
+  switch (flightMode) {
+    case 1:
+      wChar = 'w';
+      aChar = 'a';
+      sChar = 's';
+      dChar = 'd';
+      qChar = 'q';
+      eChar = 'e';
+      break;
+    case 2:
+      wChar = 'w';
+      aChar = 'a';
+      sChar = 's';
+      dChar = 'd';
+      qChar = 'q';
+      eChar = 'e';
+      jFwdChar = 'w';
+      jBckChar = 's';
+      jLeftChar = 'a';
+      jRightChar = 'd';
+      joyAChar = 'q';
+      joyBChar = 's';
+      joyCChar = 'e';
+      break;
+    case 3:
+      wChar = 'w';
+      aChar = 'a';
+      sChar = 's';
+      dChar = 'd';
+      qChar = 'q';
+      eChar = 'e';
+      jFwdChar = 'h';
+      jBckChar = 'n';
+      jLeftChar = 'j';
+      jRightChar = 'l';
+      joyAChar = 'i';
+      joyBChar = 'n';
+      joyCChar = 'k';
+      break;
+    case 4:
+      wChar = 'w';
+      aChar = 'a';
+      sChar = 's';
+      dChar = 'd';
+      qChar = 'q';
+      eChar = 'e';
+      jFwdChar = 'k';
+      jBckChar = 'i';
+      jLeftChar = 'j';
+      jRightChar = 'l';
+      joyAChar = 'h';
+      joyBChar = 'n';
+      joyCChar = 'j';
+      break;
+    case 5:
+      wChar = 'w';
+      aChar = 'a';
+      sChar = 's';
+      dChar = 'd';
+      qChar = 'q';
+      eChar = 'e';
+      jFwdChar = 'w';
+      jBckChar = 's';
+      jLeftChar = 'a';
+      jRightChar = 'd';
+      joyAChar = 0x80;
+      joyBChar = ' ';
+      joyCChar = 0x81;
+      break;
+  }
+  yield();
+}
