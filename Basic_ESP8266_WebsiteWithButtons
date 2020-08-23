@@ -1,0 +1,80 @@
+//A basic web page hosted with a WEMOS D1 R1, that uses an ESP8266 chip.
+//This example has a single button
+
+#include <ESP8266WiFi.h>
+#include <WiFiClient.h>
+#include <ESP8266WebServer.h>
+#include <ESP8266mDNS.h>
+
+#ifndef STASSID
+#define STASSID "YOUR SSID"
+#define STAPSK  "YOUR PASSWORD"
+#endif
+
+const char* ssid = STASSID;
+const char* password = STAPSK;
+
+ESP8266WebServer server(6969); //port number
+
+void handleRoot() {
+//called first to render the first page
+ String rootHTML = "<br><center><br>The mystery button<form action=\"/MYSTERY\"method=\"POST\"><input type=\"submit\" value=\"Press mystery button!\"></form><br></center>"; //HTML
+    server.send(200, "text/html",rootHTML); //sends code 200, type text/hmtl and content: string rootHTML which is a HMTL page
+
+}
+
+void handleNotFound() {
+  //handles invalid requets with a 404 error
+  String message = "File Not Found\n\n";
+  message += "URI: ";
+  message += server.uri();
+  message += "\nMethod: ";
+  message += (server.method() == HTTP_GET) ? "GET" : "POST";
+  message += "\nArguments: ";
+  message += server.args();
+  message += "\n";
+  for (uint8_t i = 0; i < server.args(); i++) {
+    message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
+  }
+  server.send(404, "text/plain", message);
+}
+
+
+void handleMysteryPage() {                          // If a POST request is made to URI /LED
+  
+  //your code here: interfacing with an LED, a motor, perhaps a display.
+ 
+ String mysteryHTML = "<br><center><br>The mystery button was pressed!</center>"; //HTML
+  server.send(200, "text/html",mysteryHTML); //sends code 200, type text/hmtl and content: string mysteryHTML which is a HMTL page
+}
+
+void setup(void) {
+ WiFi.hostname("Hyduke"); //the server hostname: what it will appear on a local network
+ WiFi.mode(WIFI_STA);
+ WiFi.begin(ssid, password);
+
+
+  // Wait for connection
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+  }
+  if (MDNS.begin("esp8266")) {
+  }
+
+  server.on("/", handleRoot); //runs the handleRoot subroutine to render the first page
+  server.on("/MYSTERY", HTTP_POST, handleMysteryPage); //if POST request with value MYSTERY is sent it calls handleMysteryPage() subroutine
+
+  server.on("/inline", []() { //other pages
+  server.send(200, "text/plain", "this works as well");
+  });
+
+  server.onNotFound(handleNotFound);
+  server.begin();
+}
+
+void loop(void) {
+
+  server.handleClient();
+  MDNS.update();
+    delay(1000);
+ }
