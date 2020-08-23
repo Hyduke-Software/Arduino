@@ -11,12 +11,13 @@
 const char* ssid = STASSID;
 const char* password = STAPSK;
 const int relayPin = 5;     // aka d15/scl/d3
-
-ESP8266WebServer server(6969);
+const int otherRelayPin = 4;     // aka d13/sda/d4
+const int LEDpin =  D13;
+ESP8266WebServer server(6969); //port number
 
 
 void handleRoot() {
- String root = "<br>Wanna cast Bloodlust? <form action=\"/TEMP\"method=\"POST\"><input type=\"submit\" value=\"BLOODLUST!\"></form><br>";
+ String root = "<center><br>Wanna cast Bloodlust? <form action=\"/TEMP\"method=\"POST\"><input type=\"submit\" value=\"BLOODLUST!\"></form><br> <br>Wanna cast mystery spell? <form action=\"/MYSTERY\"method=\"POST\"><input type=\"submit\" value=\"MYSTERY SPELL!\"></form><br></center>";
     server.send(200, "text/html",root); //sends code 200, type text/hmtl and content so string root which is a HMTL page
 
 }
@@ -45,21 +46,28 @@ void handleTEMP() {                          // If a POST request is made to URI
 //  server.sendHeader("Location","/");        // Add a header to respond with a new location for the browser to go to the home page again
 
   digitalWrite(relayPin, LOW); 
-      delay(1000);
+      delay(500);
+      digitalWrite(relayPin, HIGH);
+      digitalWrite(LEDpin, HIGH);
+      delay(40000); 
+       digitalWrite(LEDpin, LOW);
 String lustHTML = "<br>Wanna cast Bloodlust again? <form action=\"/TEMP\"method=\"POST\"><input type=\"submit\" value=\"BLOODLUST!\"></form><br>";
     server.send(200, "text/html",lustHTML); //sends code 200, type text/hmtl and content so string root which is a HMTL page
-
-
-
-
   //String hmtl = "<br> Homepage <ahref=\"http://hyduke-software.net:6969\">here</a>";
    // server.send(200, "text/html",hmtl);
+}
 
-
+void handleMysterySpell() {                          // If a POST request is made to URI /LED
+  digitalWrite(otherRelayPin, LOW); 
+      delay(500);
+ String mysteryHTML = "<br><center>Wanna cast Bloodlust? <form action=\"/TEMP\"method=\"POST\"><input type=\"submit\" value=\"BLOODLUST!\"></form><br> <br>Wanna cast mystery spell? <form action=\"/MYSTERY\"method=\"POST\"><input type=\"submit\" value=\"MYSTERY SPELL!\"></form><br></center>";
+    server.send(200, "text/html",mysteryHTML); //sends code 200, type text/hmtl and content so string root which is a HMTL page
 }
 
 void setup(void) {
   pinMode(relayPin, OUTPUT);
+    pinMode(otherRelayPin, OUTPUT);
+        pinMode(LEDpin, OUTPUT);
  WiFi.hostname("Bloodlust");
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
@@ -73,7 +81,9 @@ void setup(void) {
   }
 
   server.on("/", handleRoot);
-  server.on("/TEMP", HTTP_POST, handleTEMP);
+  server.on("/TEMP", HTTP_POST, handleTEMP); //if POST request with value TEMP comes in it calls handleTEMP subroutine
+    server.on("/MYSTERY", HTTP_POST, handleMysterySpell); //if POST request with value MYSTERY is sent it calls handleMysterySpell() subroutine
+   
   server.on("/inline", []() { //other pages
     server.send(200, "text/plain", "this works as well");
   });
@@ -84,7 +94,9 @@ void setup(void) {
 }
 
 void loop(void) {
-  digitalWrite(relayPin, HIGH); 
+  digitalWrite(relayPin, HIGH); //high as default state as this relay module joins the circuit on low - powered off
+  
+    digitalWrite(otherRelayPin, HIGH); 
   server.handleClient();
   MDNS.update();
     delay(1000);}
